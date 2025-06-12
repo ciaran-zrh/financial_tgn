@@ -383,7 +383,7 @@ cat("Initial dimensions of raw_mydata_intl: ", paste(dim(raw_mydata_intl)), "\n"
 cat("Initial dimensions of raw_eur_TGN: ", paste(dim(raw_eur_TGN)), "\n")
 cat("Initial dimensions of raw_auth_data: ", paste(dim(raw_auth_data)), "\n")
 
-# 2. Create df_updated_perspective from Block 4Add commentMore actions
+# 2. Create df_updated_perspective from Block 4
 # --- START OF MODIFIED df_organization_metadata DEFINITION ---
 csv_data_updated <- 'Acronym,FullName,MembershipCategory
 BCBS,"Basel Committee on Banking Supervision",Both
@@ -405,6 +405,12 @@ IOSCO,"International Organization of Securities Commissions",Regulator
 NGFS,"Network for Greening the Financial System",Both
 SSB,"Supervisory Board (of the European Central Bank)",Both'
 # --- END OF MODIFIED df_organization_metadata DEFINITION ---
+
+df_organization_metadata <- read.csv(text = csv_data_updated, stringsAsFactors = FALSE)
+df_organization_metadata$MembershipCategory <- as.factor(df_organization_metadata$MembershipCategory)
+cat("\nOrganization metadata (df_organization_metadata) created with updated membership types.\n")
+# print(df_organization_metadata)
+# str(df_organization_metadata)
 
 # 3. Prepare V-Dem membership_data (tribble from Block 2/3)
 vdem_membership_data_tribble <- tribble(
@@ -737,6 +743,20 @@ df_appendix_global <- df_appendix_global %>% mutate( # Also update subset if use
 df_appendix_eur <- df_appendix_eur %>% mutate( # Also update subset
   combined_pd_score = ifelse(is.na(pool01) & is.na(del01), NA_real_, rowSums(select(., pool01, del01), na.rm = TRUE))
 )
+
+# START OF ADDED CODE FOR NEW SCATTERPLOT DATA PREPARATION
+# Prepare data for the new scatterplot (DemGov vs Authority by MembershipType)
+# Ensure df_organization_metadata has 'network' column for joining
+df_organization_metadata_renamed <- df_organization_metadata %>%
+  rename(network = Acronym)
+
+df_for_new_scatterplot <- df_appendix %>%
+  left_join(df_organization_metadata_renamed, by = "network")
+
+cat("\nCreated df_for_new_scatterplot by joining df_appendix with membership category.\n")
+# print(head(df_for_new_scatterplot %>% select(network, dem_gov, combined_pd_score, MembershipCategory)))
+# END OF ADDED CODE FOR NEW SCATTERPLOT DATA PREPARATION
+
 
 # 6. Create specific network datasets from raw_mydata_intl (as in Block 1)
 # These are based on the raw international data, not the processed V-Dem or combined sets.
