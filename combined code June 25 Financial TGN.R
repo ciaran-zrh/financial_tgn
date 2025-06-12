@@ -383,28 +383,26 @@ cat("Initial dimensions of raw_mydata_intl: ", paste(dim(raw_mydata_intl)), "\n"
 cat("Initial dimensions of raw_eur_TGN: ", paste(dim(raw_eur_TGN)), "\n")
 cat("Initial dimensions of raw_auth_data: ", paste(dim(raw_auth_data)), "\n")
 
-# 2. Create df_updated_perspective from Block 4
-# --- START OF MODIFIED df_organization_metadata DEFINITION ---
-csv_data_updated <- 'Acronym,FullName,MembershipCategory
-BCBS,"Basel Committee on Banking Supervision",Both
-BIS,"Bank for International Settlements",Central bank
-CEBS,"Committee of European Banking Supervisors",Both
-CEIOPS,"Committee of European Insurance and Occupational Pensions Supervisors",Regulator
-CESR,"Committee of European Securities Regulators",Regulator
-CPMI,"Committee on Payments and Market Infrastructures",Central bank
-EBA,"European Banking Authority",Both
-EIOPA,"European Insurance and Occupational Pensions Authority",Regulator
-ESMA,"European Securities and Markets Authority",Regulator
-ESRB,"European Systemic Risk Board",Both
-FSB,"Financial Stability Board",Both
-IADI,"International Association of Deposit Insurers",Regulator
-IAIS,"International Association of Insurance Supervisors",Regulator
-IFRS,"International Financial Reporting Standards Foundation",Regulator
-IOPS,"International Organisation of Pension Supervisors",Regulator
-IOSCO,"International Organization of Securities Commissions",Regulator
-NGFS,"Network for Greening the Financial System",Both
-SSB,"Supervisory Board (of the European Central Bank)",Both'
-# --- END OF MODIFIED df_organization_metadata DEFINITION ---
+# --- Load and Prepare Membership Proportion Data from CSV ---
+
+# Load the data from the CSV file located in your working directory
+# This replaces the manual data frame creation
+tgn_membership_data <- read.csv("membership_data.csv", stringsAsFactors = FALSE)
+
+# Select only the columns we need for the merge and analysis
+tgn_membership_data <- tgn_membership_data %>%
+  select(Abbreviation, Proportion_Central_Bankers)
+
+# Rename columns for clarity and to prepare for the merge
+tgn_membership_data <- tgn_membership_data %>%
+  rename(
+    abbre = Abbreviation,
+    proportion_cb = Proportion_Central_Bankers
+  )
+
+# Now, 'tgn_membership_data' is ready to be merged with your main dataset later in the script.
+# The script can proceed to the section where it standardizes the 'abbre' column
+# (e.g., converting to uppercase) before the final join.
 
 df_organization_metadata <- read.csv(text = csv_data_updated, stringsAsFactors = FALSE)
 df_organization_metadata$MembershipCategory <- as.factor(df_organization_metadata$MembershipCategory)
