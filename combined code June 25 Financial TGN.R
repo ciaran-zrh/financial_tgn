@@ -383,32 +383,28 @@ cat("Initial dimensions of raw_mydata_intl: ", paste(dim(raw_mydata_intl)), "\n"
 cat("Initial dimensions of raw_eur_TGN: ", paste(dim(raw_eur_TGN)), "\n")
 cat("Initial dimensions of raw_auth_data: ", paste(dim(raw_auth_data)), "\n")
 
-# --- Load and Prepare Membership Proportion Data from CSV ---
-
-# Load the data from the CSV file located in your working directory
-# This replaces the manual data frame creation
-tgn_membership_data <- read.csv("membership_data.csv", stringsAsFactors = FALSE)
-
-# Select only the columns we need for the merge and analysis
-tgn_membership_data <- tgn_membership_data %>%
-  select(Abbreviation, Proportion_Central_Bankers)
-
-# Rename columns for clarity and to prepare for the merge
-tgn_membership_data <- tgn_membership_data %>%
-  rename(
-    abbre = Abbreviation,
-    proportion_cb = Proportion_Central_Bankers
-  )
-
-# Now, 'tgn_membership_data' is ready to be merged with your main dataset later in the script.
-# The script can proceed to the section where it standardizes the 'abbre' column
-# (e.g., converting to uppercase) before the final join.
-
-df_organization_metadata <- read.csv(text = csv_data_updated, stringsAsFactors = FALSE)
-df_organization_metadata$MembershipCategory <- as.factor(df_organization_metadata$MembershipCategory)
-cat("\nOrganization metadata (df_organization_metadata) created with updated membership types.\n")
-# print(df_organization_metadata)
-# str(df_organization_metadata)
+# 2. Create df_updated_perspective from Block 4Add commentMore actions
+# --- START OF MODIFIED df_organization_metadata DEFINITION ---
+csv_data_updated <- 'Acronym,FullName,MembershipCategory
+BCBS,"Basel Committee on Banking Supervision",Both
+BIS,"Bank for International Settlements",Central bank
+CEBS,"Committee of European Banking Supervisors",Both
+CEIOPS,"Committee of European Insurance and Occupational Pensions Supervisors",Regulator
+CESR,"Committee of European Securities Regulators",Regulator
+CPMI,"Committee on Payments and Market Infrastructures",Central bank
+EBA,"European Banking Authority",Both
+EIOPA,"European Insurance and Occupational Pensions Authority",Regulator
+ESMA,"European Securities and Markets Authority",Regulator
+ESRB,"European Systemic Risk Board",Both
+FSB,"Financial Stability Board",Both
+IADI,"International Association of Deposit Insurers",Regulator
+IAIS,"International Association of Insurance Supervisors",Regulator
+IFRS,"International Financial Reporting Standards Foundation",Regulator
+IOPS,"International Organisation of Pension Supervisors",Regulator
+IOSCO,"International Organization of Securities Commissions",Regulator
+NGFS,"Network for Greening the Financial System",Both
+SSB,"Supervisory Board (of the European Central Bank)",Both'
+# --- END OF MODIFIED df_organization_metadata DEFINITION ---
 
 # 3. Prepare V-Dem membership_data (tribble from Block 2/3)
 vdem_membership_data_tribble <- tribble(
@@ -741,20 +737,6 @@ df_appendix_global <- df_appendix_global %>% mutate( # Also update subset if use
 df_appendix_eur <- df_appendix_eur %>% mutate( # Also update subset
   combined_pd_score = ifelse(is.na(pool01) & is.na(del01), NA_real_, rowSums(select(., pool01, del01), na.rm = TRUE))
 )
-
-# START OF ADDED CODE FOR NEW SCATTERPLOT DATA PREPARATION
-# Prepare data for the new scatterplot (DemGov vs Authority by MembershipType)
-# Ensure df_organization_metadata has 'network' column for joining
-df_organization_metadata_renamed <- df_organization_metadata %>%
-  rename(network = Acronym)
-
-df_for_new_scatterplot <- df_appendix %>%
-  left_join(df_organization_metadata_renamed, by = "network")
-
-cat("\nCreated df_for_new_scatterplot by joining df_appendix with membership category.\n")
-# print(head(df_for_new_scatterplot %>% select(network, dem_gov, combined_pd_score, MembershipCategory)))
-# END OF ADDED CODE FOR NEW SCATTERPLOT DATA PREPARATION
-
 
 # 6. Create specific network datasets from raw_mydata_intl (as in Block 1)
 # These are based on the raw international data, not the processed V-Dem or combined sets.
