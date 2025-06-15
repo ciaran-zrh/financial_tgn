@@ -1,0 +1,143 @@
+* corrected-code
+/*******************************************************************************
+* Do-file: New Models with Pooling and Delegation as Outcomes
+*
+* Objective: To test a series of hypotheses about the determinants of
+* pooling and delegation, moderated by politicization, democratic
+* membership, and the proportion of central bankers.
+*
+* NOTE: The script is fully re-runnable. It uses standard errors
+* clustered by network ID for all models. The margins commands have been
+* corrected to use local macros for at() values.
+*******************************************************************************/
+
+* --- 0. SETUP ---
+version 17.0
+clear all
+
+* This now loads your specific dataset.
+use "tgn_memb_gran.dta"
+
+* --- DEFINE KEY VARIABLE NAME ---
+* IMPORTANT: Check that the variable name in the quotes below EXACTLY matches
+* the name of the "proportion of central bankers" variable in your dataset.
+local pcb_var "Proportion_Central_Bankers"
+
+* This block now checks if the variable you defined above actually exists.
+capture confirm variable `pcb_var'
+if _rc != 0 {
+    display as error "ERROR: The variable '`pcb_var'' was not found in your dataset."
+    display as error "Please correct the variable name in the local macro 'pcb_var' and re-run the script."
+    exit 111
+}
+
+* --- DATA PREPARATION & LABELING ---
+label variable dem_gov_score "Democratic Governance Score"
+label variable politicization_score_sqrt "Politicization Score"
+label variable delegation_score "Delegation Score"
+label variable pooling_score "Pooling Score"
+label variable membership_dem_score "Democratic Membership Score"
+label variable `pcb_var' "Proportion of Central Bankers"
+
+* Encode string variables for use in models
+encode network, generate(network_id_numeric)
+encode region, generate(region_numeric)
+encode membership_type, generate(membership_type_numeric)
+
+* Apply value labels for clear plotting
+label define region_lbl 1 "Global" 2 "European"
+label values region_numeric region_lbl
+label define memtype_lbl 1 "Central Bank" 2 "Regulator / Mixed"
+label values membership_type_numeric memtype_lbl
+
+
+* Define a set of base control variables
+global base_controls "i.region_numeric"
+
+
+/*******************************************************************************
+* --- SECTION 1: MODELING POOLING SCORE AS THE OUTCOME ---
+*******************************************************************************/
+display ""
+display "--- Section 1: Predicting Pooling Score ---"
+
+/*---
+Hypothesis P1: The effect of politicization on pooling is conditional on membership type.
+---*/
+display ""
+display "--- Model P1: Politicization x Membership Type on Pooling ---"
+reg pooling_score c.politicization_score_sqrt##i.membership_type_numeric $base_controls, cluster(network_id_numeric)
+margins membership_type_numeric, dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Pooling Score") subtitle("by Membership Type") ytitle("Marginal Effect of Politicization")
+
+/*---
+Hypothesis P2: The effect of politicization on pooling is conditional on the democratic nature of the membership.
+---*/
+display ""
+display "--- Model P2: Politicization x Democratic Membership on Pooling ---"
+reg pooling_score c.politicization_score_sqrt##c.membership_dem_score $base_controls, cluster(network_id_numeric)
+quietly summarize membership_dem_score
+local mds_min = r(min)
+local mds_mean = r(mean)
+local mds_max = r(max)
+margins, at(membership_dem_score=(`mds_min' `mds_mean' `mds_max')) dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Pooling Score") subtitle("by Democratic Membership Level") ytitle("Marginal Effect of Politicization") legend(label(1 "Low Dem. Membership") label(2 "Mean Dem. Membership") label(3 "High Dem. Membership"))
+
+/*---
+Hypothesis P3: The effect of politicization on pooling is conditional on the proportion of central bankers.
+---*/
+display ""
+display "--- Model P3: Politicization x Prop. Central Bankers on Pooling ---"
+reg pooling_score c.politicization_score_sqrt##c.`pcb_var' $base_controls, cluster(network_id_numeric)
+quietly summarize `pcb_var'
+local pcb_min = r(min)
+local pcb_mean = r(mean)
+local pcb_max = r(max)
+margins, at(`pcb_var'=(`pcb_min' `pcb_mean' `pcb_max')) dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Pooling Score") subtitle("by Proportion of Central Bankers") ytitle("Marginal Effect of Politicization") legend(label(1 "Low Prop. CB") label(2 "Mean Prop. CB") label(3 "High Prop. CB"))
+
+
+/*******************************************************************************
+* --- SECTION 2: MODELING DELEGATION SCORE AS THE OUTCOME ---
+*******************************************************************************/
+display ""
+display "--- Section 2: Predicting Delegation Score ---"
+
+/*---
+Hypothesis D1: The effect of politicization on delegation is conditional on membership type.
+---*/
+display ""
+display "--- Model D1: Politicization x Membership Type on Delegation ---"
+reg delegation_score c.politicization_score_sqrt##i.membership_type_numeric $base_controls, cluster(network_id_numeric)
+margins membership_type_numeric, dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Delegation Score") subtitle("by Membership Type") ytitle("Marginal Effect of Politicization")
+
+/*---
+Hypothesis D2: The effect of politicization on delegation is conditional on the democratic nature of the membership.
+---*/
+display ""
+display "--- Model D2: Politicization x Democratic Membership on Delegation ---"
+reg delegation_score c.politicization_score_sqrt##c.membership_dem_score $base_controls, cluster(network_id_numeric)
+quietly summarize membership_dem_score
+local mds_min = r(min)
+local mds_mean = r(mean)
+local mds_max = r(max)
+margins, at(membership_dem_score=(`mds_min' `mds_mean' `mds_max')) dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Delegation Score") subtitle("by Democratic Membership Level") ytitle("Marginal Effect of Politicization") legend(label(1 "Low Dem. Membership") label(2 "Mean Dem. Membership") label(3 "High Dem. Membership"))
+
+/*---
+Hypothesis D3: The effect of politicization on delegation is conditional on the proportion of central bankers.
+---*/
+display ""
+display "--- Model D3: Politicization x Prop. Central Bankers on Delegation ---"
+reg delegation_score c.politicization_score_sqrt##c.`pcb_var' $base_controls, cluster(network_id_numeric)
+quietly summarize `pcb_var'
+local pcb_min = r(min)
+local pcb_mean = r(mean)
+local pcb_max = r(max)
+margins, at(`pcb_var'=(`pcb_min' `pcb_mean' `pcb_max')) dydx(politicization_score_sqrt) post
+marginsplot, title("Effect of Politicization on Delegation Score") subtitle("by Proportion of Central Bankers") ytitle("Marginal Effect of Politicization") legend(label(1 "Low Prop. CB") label(2 "Mean Prop. CB") label(3 "High Prop. CB"))
+
+
+display ""
+display "Stata Do-file has finished running the new models."
