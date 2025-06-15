@@ -1,0 +1,209 @@
+* corrected-code
+/*******************************************************************************
+* Stata Code for Three-Way Interaction Models (Revised with Full Dataset)
+*
+* Objective: To test how various factors interact to affect `dem_gov_score`
+* using the complete dataset for all networks (Global and EU).
+*
+* NOTE: The script is now fully re-runnable. Graphing commands have been
+* revised to produce single, clear plots with multiple lines to avoid
+* overlapping panels and improve interpretation. The color scheme has been
+* reverted to Stata's default.
+*******************************************************************************/
+
+* --- SETUP: Start with a clean slate ---
+version 17.0
+clear all
+
+* This now loads your specific dataset.
+use "tgn_memb_gran.dta"
+
+* --- DEFINE KEY VARIABLE NAME ---
+* IMPORTANT: Check that the variable name in the quotes below EXACTLY matches
+* the name of the "proportion of central bankers" variable in your dataset.
+local pcb_var "Proportion_Central_Bankers"
+
+* This block now checks if the variable you defined above actually exists.
+capture confirm variable `pcb_var'
+if _rc != 0 {
+    display as error "ERROR: The variable '`pcb_var'' was not found in your dataset."
+    display as error "Please correct the variable name in the local macro 'pcb_var' and re-run the script."
+    exit 111
+}
+
+
+* --- IMPORTANT: DEFINE VARIABLE LABELS ---
+label variable dem_gov_score "Democratic Governance Score"
+label variable politicization_score_sqrt "Politicization"
+label variable delegation_score "Delegation Score"
+label variable pooling_score "Pooling Score"
+label variable membership_dem_score "Democratic Membership Score"
+label variable region "Region (Original String)"
+label variable membership_type "Membership Type (Original String)"
+label variable `pcb_var' "Proportion of Central Bankers"
+label variable network "Network (Original String)"
+
+* --- Define standard options for outreg2 ---
+global outreg_options "bdec(3) sdec(3) pdec(3) label"
+
+* --- Data Preparation: Convert string variables to numeric ---
+encode region, gen(region_numeric)
+label variable region_numeric "Region (Numeric)"
+* --- Apply value labels for clear plotting ---
+label define region_lbl 1 "Global" 2 "European"
+label values region_numeric region_lbl
+
+
+encode membership_type, gen(membership_type_numeric)
+label variable membership_type_numeric "Membership Type (Numeric)"
+
+encode network, gen(network_id_numeric)
+label variable network_id_numeric "Network ID (Numeric)"
+
+
+/*******************************************************************************
+* --- MODEL 1: Politicization x Region x Proportion of Central Bankers ---
+*******************************************************************************/
+display ""
+display "--- Model 1: Politicization x Region x Prop. CB ---"
+
+* 1a. Manually create interaction terms
+gen pol_X_pcb = c.politicization_score_sqrt * c.`pcb_var'
+label var pol_X_pcb "Politicization x Prop. CB"
+gen pol_X_region2 = c.politicization_score_sqrt * (region_numeric==2)
+label var pol_X_region2 "Politicization x Region(European)"
+gen pcb_X_region2 = c.`pcb_var' * (region_numeric==2)
+label var pcb_X_region2 "Prop. CB x Region(European)"
+gen three_way_M1 = c.politicization_score_sqrt * c.`pcb_var' * (region_numeric==2)
+label var three_way_M1 "Politicization x Prop. CB x Region(European)"
+
+
+reg dem_gov_score c.politicization_score_sqrt##c.Proportion_Central_Bankers##i.region_numeric ///
+	delegation_score pooling_score membership_dem_score, ///
+	cluster(network_id_numeric)
+
+	
+outreg2 using "H2_Politicization x Region x Prop. CB.doc", ctitle("Model 1: Politicization x Region x Prop. CB") $outreg_options replace
+* Margins for each region across values of Proportion_Central_Bankers
+margins region_numeric, at(Proportion_Central_Bankers=(0(0.25)1)) ///
+	dydx(politicization_score_sqrt) post
+
+* Plot both regions in one graph
+marginsplot, ///
+	recast(line) ///
+	plotdimension(region_numeric) ///
+	ytitle("Marginal Effect of Politicization") ///
+	xtitle("Proportion of Central Bankers on Board") ///
+	title("Interaction of Politicization and Proportion of Central Bankers by Region") ///
+	subtitle("Effect of Politicization on Democratic Governance") ///
+	xlabel(0 "0% (None)" 0.25 "25%" 0.5 "50%" 0.75 "75%" 1 "100% (All)") ///
+	legend(order(1 2) label(1 "Global Networks") label(2 "European Networks")) ///
+	name(marginsplot_clean, replace)
+
+graph export "plot_M1_politicization_3way.svg", replace
+
+
+/*******************************************************************************
+* --- MODEL 2: Pooling x Delegation x Proportion of Central Bankers ---
+*******************************************************************************/
+display ""
+display "--- Model 2: Pooling x Delegation x Prop. CB ---"
+
+* 2a. Manually create interaction terms
+gen pool_X_deleg = c.pooling_score * c.delegation_score
+label var pool_X_deleg "Pooling x Delegation"
+gen pool_X_pcb = c.pooling_score * c.`pcb_var'
+label var pool_X_pcb "Pooling x Prop. CB"
+gen deleg_X_pcb = c.delegation_score * c.`pcb_var'
+label var deleg_X_pcb "Delegation x Prop. CB"
+gen three_way_M2 = c.pooling_score * c.delegation_score * c.`pcb_var'
+label var three_way_M2 "Pooling x Delegation x Prop. CB"
+
+* 2b. Run regression with manual interactions
+reg dem_gov_score c.pooling_score c.delegation_score c.`pcb_var' pool_X_deleg pool_X_pcb deleg_X_pcb three_way_M2 politicization_score_sqrt membership_dem_score, cluster(network_id_numeric)
+outreg2 using "H2_Authority_Interaction.doc", ctitle("Model 2: Pooling x Delegation x Prop. CB") $outreg_options replace
+drop pool_X_deleg pool_X_pcb deleg_X_pcb three_way_M2
+
+* 2c. Run regression with factor notation for margins/marginsplot
+reg dem_gov_score c.pooling_score##c.delegation_score##c.`pcb_var' politicization_score_sqrt membership_dem_score, cluster(network_id_numeric)
+
+* 2d. Visualize the three-way interaction
+quietly summarize `pcb_var'
+local pcb_mean = r(mean)
+local pcb_sd = r(sd)
+local pcb_low = `pcb_mean' - `pcb_sd'
+local pcb_high = `pcb_mean' + `pcb_sd'
+if `pcb_low' < 0 local pcb_low = 0
+if `pcb_high' > 1 local pcb_high = 1
+
+quietly summarize delegation_score
+local deleg_min = r(min)
+local deleg_mean = r(mean)
+local deleg_max = r(max)
+
+margins, at(delegation_score=(`deleg_min' `deleg_mean' `deleg_max') `pcb_var'=(`pcb_low' `pcb_mean' `pcb_high')) dydx(pooling_score) post
+
+* Define plot options in macros for clarity
+local title2 "How Proportion of Central Bankers Moderates the Effect of Authority"
+local subtitle2 "Effect of Pooling on Democratic Governance, Conditional on Delegation"
+local ytitle2 "Marginal Effect of Pooling Score"
+local xtitle2 "Delegation Score"
+local xlabels2 xlabel(`deleg_min' "Low" `deleg_mean' "Mean" `deleg_max' "High")
+local legend2 legend(order(1 2 3) label(1 "Low Prop. CB (-1 SD)") label(2 "Mean Prop. CB") label(3 "High Prop. CB (+1 SD)"))
+
+marginsplot, ytitle("`ytitle2'") xtitle("`xtitle2'") title("`title2'") subtitle("`subtitle2'") `xlabels2' `legend2'
+graph export "plot_M2_pooling_3way.svg", replace
+
+
+/*******************************************************************************
+* --- MODEL 3: Dem. Membership x Politicization x Proportion of Central Bankers ---
+*******************************************************************************/
+display ""
+display "--- Model 3: Dem. Membership x Politicization x Prop. CB ---"
+
+* 3a. Manually create interaction terms
+gen dem_X_pol = c.membership_dem_score * c.politicization_score_sqrt
+label var dem_X_pol "Dem. Membership x Politicization"
+gen dem_X_pcb = c.membership_dem_score * c.`pcb_var'
+label var dem_X_pcb "Dem. Membership x Prop. CB"
+gen pol_X_pcb_M3 = c.politicization_score_sqrt * c.`pcb_var'
+label var pol_X_pcb_M3 "Politicization x Prop. CB"
+gen three_way_M3 = c.membership_dem_score * c.politicization_score_sqrt * c.`pcb_var'
+label var three_way_M3 "Dem. Membership x Politicization x Prop. CB"
+
+* 3b. Run regression with manual interactions
+reg dem_gov_score c.membership_dem_score c.politicization_score_sqrt c.`pcb_var' dem_X_pol dem_X_pcb pol_X_pcb_M3 three_way_M3 pooling_score delegation_score, cluster(network_id_numeric)
+outreg2 using "H3_Dem_Membership_Interaction.doc", ctitle("Model 3: Dem. Membership x Politicization x Prop. CB") $outreg_options replace
+drop dem_X_pol dem_X_pcb pol_X_pcb_M3 three_way_M3
+
+* 3c. Run regression with factor notation for margins/marginsplot
+reg dem_gov_score c.membership_dem_score##c.politicization_score_sqrt##c.`pcb_var' pooling_score delegation_score, cluster(network_id_numeric)
+
+* 3d. Visualize the three-way interaction
+quietly summarize `pcb_var'
+local pcb_mean = r(mean)
+local pcb_sd = r(sd)
+local pcb_low = `pcb_mean' - `pcb_sd'
+local pcb_high = `pcb_mean' + `pcb_sd'
+if `pcb_low' < 0 local pcb_low = 0
+if `pcb_high' > 1 local pcb_high = 1
+
+quietly summarize politicization_score_sqrt
+local pol_min = r(min)
+local pol_mean = r(mean)
+local pol_max = r(max)
+
+margins, at(politicization_score_sqrt=(`pol_min' `pol_mean' `pol_max') `pcb_var'=(`pcb_low' `pcb_mean' `pcb_high')) dydx(membership_dem_score) post
+
+* Define plot options in macros for clarity
+local title3 "How Proportion of Central Bankers Buffers the Effect of Politicization"
+local subtitle3 "Effect of Democratic Membership on Democratic Governance"
+local ytitle3 "Marginal Effect of Democratic Membership"
+local xtitle3 "Level of Politicization"
+local xlabels3 xlabel(`pol_min' "Low" `pol_mean' "Mean" `pol_max' "High")
+local legend3 legend(order(1 2 3) label(1 "Low Prop. CB (-1 SD)") label(2 "Mean Prop. CB") label(3 "High Prop. CB (+1 SD)"))
+
+marginsplot, ytitle("`ytitle3'") xtitle("`xtitle3'") title("`title3'") subtitle("`subtitle3'") `xlabels3' `legend3'
+graph export "plot_M3_dem_membership_3way.svg", replace
+
+* --- End of Script ---
