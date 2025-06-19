@@ -1,30 +1,25 @@
-* corrected-code
+
 /*******************************************************************************
 * Stata Code for Three-Way Interaction Models (Revised with Full Dataset)
 *
 * Objective: To test how various factors interact to affect `dem_gov_score`
 * using the complete dataset for all networks (Global and EU).
 *
-* NOTE: The script is now fully re-runnable. Graphing commands have been
-* revised to produce single, clear plots with multiple lines to avoid
-* overlapping panels and improve interpretation. The color scheme has been
-* reverted to Stata's default.
+* 
 *******************************************************************************/
 
 * --- SETUP: Start with a clean slate ---
 version 17.0
 clear all
 
-* This now loads your specific dataset.
+* This loads the specific dataset.
 use "tgn_memb_gran.dta"
 
 * --- DEFINE KEY VARIABLE NAME ---
-* IMPORTANT: Check that the variable name in the quotes below EXACTLY matches
-* the name of the "proportion of central bankers" variable in your dataset.
+
 local pcb_var "Proportion_Central_Bankers"
 
-* This block now checks if the variable you defined above actually exists.
-capture confirm variable `pcb_var'
+
 if _rc != 0 {
     display as error "ERROR: The variable '`pcb_var'' was not found in your dataset."
     display as error "Please correct the variable name in the local macro 'pcb_var' and re-run the script."
