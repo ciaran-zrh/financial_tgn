@@ -6,24 +6,21 @@
 * pooling and delegation, moderated by politicization, democratic
 * membership, and the proportion of central bankers.
 *
-* NOTE: The script is fully re-runnable. It uses standard errors
-* clustered by network ID for all models. The margins commands have been
-* corrected to use local macros for at() values.
+* 
 *******************************************************************************/
 
-* --- 0. SETUP ---
-version 17.0
+
 clear all
 
-* This now loads your specific dataset.
+* This loads  specific dataset.
 use "tgn_memb_gran.dta"
 
 * --- DEFINE KEY VARIABLE NAME ---
 * IMPORTANT: Check that the variable name in the quotes below EXACTLY matches
-* the name of the "proportion of central bankers" variable in your dataset.
+* the name of the "proportion of central bankers" variable in dataset.
 local pcb_var "Proportion_Central_Bankers"
 
-* This block now checks if the variable you defined above actually exists.
+
 capture confirm variable `pcb_var'
 if _rc != 0 {
     display as error "ERROR: The variable '`pcb_var'' was not found in your dataset."
