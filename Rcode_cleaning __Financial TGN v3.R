@@ -1,3 +1,4 @@
+##Ciarán O'Flynn - June 2025##
 # Combined and Refactored R Script - Optimized Version
 
 # --- I. SETUP ---
