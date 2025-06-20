@@ -25,7 +25,6 @@ if (Sys.info()['sysname'] == "Windows") {
 # are accessible from this working directory (either directly or in specified subfolders).
 
 # Load libraries
-# Only essential libraries are loaded to keep the environment clean.
 library(devtools) # For install_github if vdemdata is not installed via CRAN
 library(vdemdata)
 library(dplyr) # For data manipulation (e.g., mutate, filter, select, join)
@@ -52,7 +51,6 @@ academic_plot_dpi <- 300 # Dots per inch
 cat("Setup complete. Libraries loaded and parameters set.\n")
 
 # --- II. HELPER FUNCTION DEFINITIONS ---
-# These functions encapsulate the data processing logic, promoting reusability and readability.
 
 # Function 1: Aggregate sub-indicators into main governance components
 aggregate_indicators <- function(df) {
